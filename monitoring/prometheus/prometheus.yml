@@ -6,7 +6,7 @@ scrape_configs:
   - job_name: "url-shortener"
     static_configs:
       - targets: ["app:8080"]
-    metrics_path: /metrics
+    metrics_path: /actuator/prometheus   # Spring Boot Actuator endpoint
 
   - job_name: "postgres"
     static_configs:

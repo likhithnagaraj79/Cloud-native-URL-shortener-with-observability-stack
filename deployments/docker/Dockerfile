@@ -1,13 +1,13 @@
-FROM golang:1.26-alpine AS builder
-
+FROM maven:3.9-amazoncorretto-21 AS builder
 WORKDIR /app
-COPY go.mod go.sum ./
-RUN go mod download
+COPY pom.xml .
+RUN mvn dependency:go-offline -q
+COPY src ./src
+RUN mvn package -DskipTests -q
 
-COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /url-shortener ./cmd/server
-
-FROM gcr.io/distroless/static-debian12
-COPY --from=builder /url-shortener /url-shortener
+FROM amazoncorretto:21-alpine
+RUN addgroup -S app && adduser -S app -G app
+USER app
+COPY --from=builder /app/target/*.jar /app.jar
 EXPOSE 8080
-ENTRYPOINT ["/url-shortener"]
+ENTRYPOINT ["java", "-jar", "/app.jar"]

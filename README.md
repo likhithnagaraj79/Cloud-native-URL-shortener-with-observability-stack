@@ -1,10 +1,11 @@
 # URL Shortener — Cloud-Native with Full Observability
 
-[![CI](https://github.com/likhi/url-shortener/actions/workflows/ci.yml/badge.svg)](https://github.com/likhi/url-shortener/actions/workflows/ci.yml)
-[![Go Version](https://img.shields.io/badge/go-1.26-blue)](https://go.dev)
+[![CI](https://github.com/likhithnagaraj79/Cloud-native-URL-shortener-with-observability-stack/actions/workflows/ci.yml/badge.svg)](https://github.com/likhithnagaraj79/Cloud-native-URL-shortener-with-observability-stack/actions/workflows/ci.yml)
+[![Java](https://img.shields.io/badge/Java-21-orange)](https://adoptium.net)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3-brightgreen)](https://spring.io/projects/spring-boot)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A production-grade URL shortener built with Go, deployed on Kubernetes, and instrumented end-to-end with Prometheus and Grafana. Built to demonstrate backend engineering, SRE, and DevOps best practices.
+A production-grade URL shortener built with Java 21 and Spring Boot, deployed on Kubernetes, and instrumented end-to-end with Prometheus and Grafana. Built to demonstrate backend engineering, SRE, and DevOps best practices.
 
 ---
 
@@ -22,7 +23,7 @@ A production-grade URL shortener built with Go, deployed on Kubernetes, and inst
                                │               │
                ┌───────────────▼──┐     ┌──────▼───────────────┐
                │  url-shortener   │ ... │   url-shortener       │
-               │  pod (Go/Gin)    │     │   pod (Go/Gin)        │
+               │  pod (Java/SB)   │     │   pod (Java/SB)       │
                │  ─────────────   │     │   ─────────────       │
                │  • POST /urls    │     │   • POST /urls        │
                │  • GET /:code    │     │   • GET /:code        │
@@ -69,18 +70,20 @@ Browser ──GET /abc1234──► pod
 
 | Layer | Technology |
 |---|---|
-| Language | Go 1.26 |
-| HTTP framework | Gin |
-| Database | PostgreSQL 16 (pgx/v5 driver) |
-| Cache / Rate-limit | Redis 7 |
-| Metrics | Prometheus client_golang |
+| Language | Java 21 |
+| Framework | Spring Boot 3.3 |
+| HTTP | Spring Web MVC |
+| Database | PostgreSQL 16 (Spring Data JPA + Hibernate) |
+| Migrations | Flyway |
+| Cache / Rate-limit | Redis 7 (Spring Data Redis) |
+| Metrics | Micrometer + Prometheus (via Spring Boot Actuator) |
 | Dashboards | Grafana |
-| Containerisation | Docker (distroless image) |
+| Containerisation | Docker (Amazon Corretto 21 Alpine) |
 | Orchestration | Kubernetes + HPA |
 | Ingress | nginx-ingress + cert-manager |
 | CI/CD | GitHub Actions |
-| Config | Viper (env-var driven) |
-| Logging | Zap (structured JSON) |
+| Config | Spring Boot `application.yml` + env vars |
+| Logging | SLF4J + Logback (structured JSON) |
 
 ---
 
@@ -89,8 +92,8 @@ Browser ──GET /abc1234──► pod
 **Prerequisites:** Docker Desktop (includes `docker compose`)
 
 ```bash
-git clone https://github.com/likhi/url-shortener.git
-cd url-shortener
+git clone https://github.com/likhithnagaraj79/Cloud-native-URL-shortener-with-observability-stack.git
+cd Cloud-native-URL-shortener-with-observability-stack
 
 cp .env.example .env          # edit values if needed (defaults work out of the box)
 
@@ -187,34 +190,36 @@ curl http://localhost:8080/health
 
 ```
 .
-├── cmd/server/main.go              # entrypoint — wires everything, graceful shutdown
-├── internal/
-│   ├── api/
-│   │   ├── handlers/               # Gin handlers (Create, Redirect, Stats, Health)
-│   │   ├── middleware/             # CORS, Zap logger, Prometheus, rate limiter
-│   │   └── routes.go              # route registration
-│   ├── config/config.go            # env-var config via Viper
-│   ├── database/
-│   │   ├── cache.go               # Cache interface + RedisCache adapter
-│   │   ├── migrate.go             # embedded-SQL migration runner
-│   │   ├── postgres.go            # pgxpool connection
-│   │   └── redis.go               # Redis client
-│   ├── models/url.go              # domain types + request/response structs
-│   ├── repository/                # PostgreSQL data access + URLStore interface
-│   ├── service/                   # business logic + URLShortener interface
-│   └── worker/cleanup.go          # background job: delete expired URLs hourly
-├── pkg/
-│   ├── metrics/prometheus.go      # all Prometheus counters / histograms / gauges
-│   └── shortener/generator.go     # crypto-random short code generator
-├── migrations/                    # *.up.sql / *.down.sql — embedded into binary
+├── pom.xml                             # Maven build + dependencies
+├── src/
+│   ├── main/
+│   │   ├── java/com/urlshortener/
+│   │   │   ├── UrlShortenerApplication.java   # Spring Boot entrypoint
+│   │   │   ├── config/                        # AppProperties, RedisConfig, WebConfig
+│   │   │   ├── controller/UrlController.java  # REST endpoints
+│   │   │   ├── dto/                           # Java records: request/response
+│   │   │   ├── exception/                     # UrlNotFoundException, GlobalExceptionHandler
+│   │   │   ├── filter/RateLimitFilter.java    # Redis-backed rate limiter (100 req/min/IP)
+│   │   │   ├── metrics/UrlMetrics.java        # Micrometer counters
+│   │   │   ├── model/Url.java                 # JPA entity
+│   │   │   ├── repository/UrlRepository.java  # Spring Data JPA + custom JPQL
+│   │   │   ├── service/UrlServiceImpl.java    # cache-aside, async click count
+│   │   │   └── worker/CleanupWorker.java      # @Scheduled expired URL sweep
+│   │   └── resources/
+│   │       ├── application.yml
+│   │       └── db/migration/V1__create_urls_table.sql   # Flyway migration
+│   └── test/java/com/urlshortener/
+│       ├── controller/UrlControllerTest.java  # MockMvc tests
+│       ├── service/UrlServiceTest.java        # Mockito unit tests
+│       └── util/ShortCodeGeneratorTest.java   # generator property tests
 ├── deployments/
-│   ├── docker/                    # Dockerfile + docker-compose.yml
+│   ├── docker/                    # Dockerfile (Corretto 21) + docker-compose
 │   └── k8s/                       # namespace, configmap, secret, deployment,
 │                                  # service, ingress, hpa
 ├── monitoring/
-│   ├── prometheus/prometheus.yml  # scrape config
+│   ├── prometheus/prometheus.yml  # scrapes /actuator/prometheus
 │   └── grafana/                   # auto-provisioned datasource + dashboard
-└── .github/workflows/             # CI (test + lint + build) + CD (push + deploy)
+└── .github/workflows/             # CI (mvn verify + docker build) + CD (GHCR + K8s)
 ```
 
 ---
@@ -222,23 +227,20 @@ curl http://localhost:8080/health
 ## Development
 
 ```bash
-# Run all tests (with race detector)
-go test ./... -race
+# Run all tests with coverage
+make test           # runs mvn verify
 
-# Build binary
-make build          # output: bin/url-shortener
+# Build JAR
+make build          # output: target/url-shortener-1.0.0.jar
 
-# Run locally (needs Postgres + Redis running)
-make run
+# Run locally (needs Postgres + Redis)
+make run            # runs mvn spring-boot:run
 
-# Spin up full stack
+# Spin up full stack with Docker Compose
 make docker-up
 
 # Tear down
 make docker-down
-
-# Run linter (requires golangci-lint)
-make lint
 ```
 
 ### Environment variables
@@ -255,7 +257,6 @@ All config is driven by env vars (see `.env.example`):
 | `REDIS_HOST` | `localhost` | Redis host |
 | `APP_BASE_URL` | `http://localhost:8080` | Prefix for generated short URLs |
 | `APP_SHORT_CODE_LEN` | `7` | Length of auto-generated codes |
-| `APP_ENV` | `development` | `development` or `production` |
 
 ---
 
@@ -307,8 +308,8 @@ Update `deployments/k8s/secret.yaml` with real credentials before applying — o
 
 Every pull request triggers:
 
-1. `go vet` + `golangci-lint`
-2. `go test ./... -race`
+1. `mvn compile` (type-checking)
+2. `mvn verify` (21 tests with JUnit 5 + Mockito)
 3. Docker image build (validates the Dockerfile compiles)
 
 Every push to `main` additionally:

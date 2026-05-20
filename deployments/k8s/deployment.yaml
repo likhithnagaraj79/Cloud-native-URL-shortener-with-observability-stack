@@ -37,15 +37,15 @@ spec:
                 name: url-shortener-secret
           readinessProbe:
             httpGet:
-              path: /health
+              path: /actuator/health
               port: 8080
-            initialDelaySeconds: 5
+            initialDelaySeconds: 20
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /health
+              path: /actuator/health
               port: 8080
-            initialDelaySeconds: 15
+            initialDelaySeconds: 30
             periodSeconds: 20
             failureThreshold: 3
           resources:

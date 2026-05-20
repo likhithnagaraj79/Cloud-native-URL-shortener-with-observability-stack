@@ -1,19 +1,18 @@
-# binaries
-bin/
-*.exe
+# Maven
+target/
+*.class
+*.jar
+*.war
 
-# env
+# Environment
 .env
 .env.local
 
-# test artifacts
-coverage.out
-*.test
-
-# editor
+# IDE
 .DS_Store
 .idea/
 .vscode/
+*.iml
 
-# k8s secrets (never commit real values)
+# K8s secrets (never commit real values)
 deployments/k8s/secret-values.yaml
