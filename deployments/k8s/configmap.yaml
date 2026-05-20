@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: url-shortener-config
+  namespace: url-shortener
+data:
+  SERVER_PORT: "8080"
+  SERVER_HOST: "0.0.0.0"
+  DB_HOST: "postgres-svc"
+  DB_PORT: "5432"
+  DB_NAME: "urlshortener"
+  DB_SSL_MODE: "disable"
+  REDIS_HOST: "redis-svc"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  APP_SHORT_CODE_LEN: "7"
+  APP_ENV: "production"

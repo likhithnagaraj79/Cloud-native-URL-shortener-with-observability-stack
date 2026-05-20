@@ -1,0 +1,19 @@
+# binaries
+bin/
+*.exe
+
+# env
+.env
+.env.local
+
+# test artifacts
+coverage.out
+*.test
+
+# editor
+.DS_Store
+.idea/
+.vscode/
+
+# k8s secrets (never commit real values)
+deployments/k8s/secret-values.yaml
